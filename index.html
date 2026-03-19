@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Forecast UAN 2026-2</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f3;color:#1a1a18;padding:1.5rem}
+.container{max-width:1100px;margin:0 auto}
+.hdr{padding:1.25rem 0 1rem;border-bottom:1px solid #e0dfd8;margin-bottom:1.25rem}
+.hdr h1{font-size:20px;font-weight:600;color:#1a1a18}
+.hdr p{font-size:13px;color:#5f5e5a;margin-top:4px}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:1.25rem}
+.kpi{background:#fff;border-radius:8px;padding:14px 16px;border:0.5px solid #e0dfd8}
+.kpi .lbl{font-size:12px;color:#5f5e5a;margin-bottom:6px}
+.kpi .val{font-size:22px;font-weight:600;color:#1a1a18}
+.kpi .sub{font-size:12px;color:#888780;margin-top:3px}
+.tabs{display:flex;gap:4px;margin-bottom:1rem;border-bottom:1px solid #e0dfd8}
+.tab{padding:8px 16px;font-size:13px;cursor:pointer;border:none;background:transparent;color:#888780;border-bottom:2px solid transparent;margin-bottom:-1px;transition:color .15s}
+.tab.active{color:#1a1a18;border-bottom-color:#1a1a18;font-weight:500}
+.tab:hover{color:#1a1a18}
+.panel{display:none}.panel.active{display:block}
+.filters{display:flex;gap:10px;margin-bottom:1rem;align-items:center;flex-wrap:wrap}
+.filters select{font-size:13px;padding:6px 10px;border:1px solid #d3d1c7;border-radius:8px;background:#fff;color:#1a1a18;cursor:pointer}
+.filters label{font-size:13px;color:#5f5e5a}
+.chart-row{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem}
+.chart-box{background:#fff;border:0.5px solid #e0dfd8;border-radius:12px;padding:1rem}
+.chart-box.full{grid-column:1/-1}
+.chart-title{font-size:12px;font-weight:500;color:#888780;margin-bottom:12px;text-transform:uppercase;letter-spacing:.05em}
+.legend{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:10px;font-size:12px;color:#5f5e5a}
+.legend span{display:flex;align-items:center;gap:4px}
+.legend .dot{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+.tbl{width:100%;font-size:13px;border-collapse:collapse}
+.tbl th{font-size:11px;font-weight:500;color:#888780;text-align:left;padding:6px 8px;border-bottom:1px solid #e0dfd8;background:#f5f5f3}
+.tbl td{padding:7px 8px;border-bottom:0.5px solid #e0dfd8;color:#1a1a18}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{background:#f5f5f3}
+.badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:99px;font-weight:500}
+.badge.ok{background:#EAF3DE;color:#3B6D11}
+.badge.warn{background:#FAEEDA;color:#854F0B}
+.badge.bad{background:#FCEBEB;color:#A32D2D}
+.kpis-small{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:8px}
+@media(max-width:700px){
+  .kpis,.kpis-small{grid-template-columns:1fr 1fr}
+  .chart-row{grid-template-columns:1fr}
+  body{padding:1rem}
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="hdr">
+    <h1>Forecast UAN — Periodo 2026-2</h1>
+    <p>Presupuesto digital · Leads · Matrículas por ciudad, medio y programa</p>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi"><div class="lbl">Presupuesto total</div><div class="val">$230M</div><div class="sub">COP</div></div>
+    <div class="kpi"><div class="lbl">Leads proyectados</div><div class="val">12,831</div><div class="sub">Sede física</div></div>
+    <div class="kpi"><div class="lbl">Matrículas forecast</div><div class="val">451</div><div class="sub">de 1,020 meta</div></div>
+    <div class="kpi"><div class="lbl">Cumplimiento global</div><div class="val">44.2%</div><div class="sub">% vs meta</div></div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('ciudades',this)">Por ciudad</button>
+    <button class="tab" onclick="switchTab('medios',this)">Por medio</button>
+    <button class="tab" onclick="switchTab('meses',this)">Por mes</button>
+    <button class="tab" onclick="switchTab('facultades',this)">Por facultad</button>
+  </div>
+
+  <div id="panel-ciudades" class="panel active">
+    <div class="filters">
+      <label>Ordenar por:</label>
+      <select onchange="renderCiudades(this.value)">
+        <option value="presupuesto">Presupuesto</option>
+        <option value="leads">Leads</option>
+        <option value="matriculas">Matrículas</option>
+        <option value="cpl">CPL</option>
+        <option value="pct_cum">% Cumplimiento</option>
+      </select>
+    </div>
+    <div class="chart-row">
+      <div class="chart-box"><div class="chart-title">Presupuesto por ciudad (Top 10)</div><div style="position:relative;height:300px"><canvas id="cPresupuesto"></canvas></div></div>
+      <div class="chart-box"><div class="chart-title">Matrículas vs meta</div><div style="position:relative;height:300px"><canvas id="cMatriculas"></canvas></div></div>
+    </div>
+    <div class="chart-box full" style="margin-bottom:1rem">
+      <div class="chart-title">Tabla detallada por ciudad</div>
+      <div id="tablaCiudades"></div>
+    </div>
+  </div>
+
+  <div id="panel-medios" class="panel">
+    <div class="chart-row">
+      <div class="chart-box">
+        <div class="chart-title">Distribución por medio</div>
+        <div class="legend">
+          <span><span class="dot" style="background:#185FA5"></span>Facebook $127M</span>
+          <span><span class="dot" style="background:#1D9E75"></span>Google $64M</span>
+          <span><span class="dot" style="background:#BA7517"></span>TikTok $39M</span>
+        </div>
+        <div style="position:relative;height:280px"><canvas id="cMediosDona"></canvas></div>
+      </div>
+      <div class="chart-box">
+        <div class="chart-title">Presupuesto por metodología</div>
+        <div class="legend">
+          <span><span class="dot" style="background:#185FA5"></span>Presencial</span>
+          <span><span class="dot" style="background:#1D9E75"></span>Virtual</span>
+          <span><span class="dot" style="background:#BA7517"></span>Distancia</span>
+          <span><span class="dot" style="background:#993556"></span>Híbrido</span>
+        </div>
+        <div style="position:relative;height:280px"><canvas id="cMetodologia"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="panel-meses" class="panel">
+    <div class="chart-box full" style="margin-bottom:1rem">
+      <div class="chart-title">Distribución de presupuesto mensual</div>
+      <div style="position:relative;height:300px"><canvas id="cMeses"></canvas></div>
+    </div>
+    <div class="chart-box full">
+      <div class="chart-title">Resumen por mes</div>
+      <div class="kpis-small">
+        <div class="kpi"><div class="lbl">Marzo 2026</div><div class="val">$11.5M</div><div class="sub">5% del total</div></div>
+        <div class="kpi"><div class="lbl">Abril 2026</div><div class="val">$69M</div><div class="sub">30% del total</div></div>
+        <div class="kpi"><div class="lbl">Mayo 2026</div><div class="val">$80.5M</div><div class="sub">35% del total</div></div>
+        <div class="kpi"><div class="lbl">Junio 2026</div><div class="val">$69M</div><div class="sub">30% del total</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="panel-facultades" class="panel">
+    <div class="chart-box full">
+      <div class="chart-title">Presupuesto por facultad (Top 8)</div>
+      <div style="position:relative;height:360px"><canvas id="cFacultades"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const ciudadesData=[
+  {ciudad:'ARMENIA',presupuesto:4784000,leads:302,cpl:15840,matriculas:11,meta_mat:24,pct_cum:45.8},
+  {ciudad:'BOGOTÁ',presupuesto:84134000,leads:5384,cpl:15626,matriculas:188,meta_mat:428,pct_cum:43.9},
+  {ciudad:'BUCARAMANGA',presupuesto:2806000,leads:176,cpl:15965,matriculas:6,meta_mat:14,pct_cum:42.9},
+  {ciudad:'BUGA',presupuesto:414000,leads:25,cpl:16545,matriculas:1,meta_mat:2,pct_cum:50.0},
+  {ciudad:'CALI',presupuesto:3289000,leads:176,cpl:18654,matriculas:6,meta_mat:14,pct_cum:42.9},
+  {ciudad:'CARTAGENA',presupuesto:3059000,leads:151,cpl:20237,matriculas:5,meta_mat:12,pct_cum:41.7},
+  {ciudad:'CÚCUTA',presupuesto:7452000,leads:302,cpl:24694,matriculas:11,meta_mat:24,pct_cum:45.8},
+  {ciudad:'DUITAMA',presupuesto:8418000,leads:453,cpl:18593,matriculas:16,meta_mat:36,pct_cum:44.4},
+  {ciudad:'IBAGUÉ',presupuesto:12512000,leads:705,cpl:17751,matriculas:25,meta_mat:56,pct_cum:44.6},
+  {ciudad:'MANIZALES',presupuesto:621000,leads:25,cpl:24694,matriculas:1,meta_mat:2,pct_cum:50.0},
+  {ciudad:'NEIVA',presupuesto:16629000,leads:881,cpl:18872,matriculas:31,meta_mat:70,pct_cum:44.3},
+  {ciudad:'PALMIRA',presupuesto:4301000,leads:277,cpl:15514,matriculas:10,meta_mat:22,pct_cum:45.5},
+  {ciudad:'PASTO',presupuesto:437000,leads:25,cpl:17432,matriculas:1,meta_mat:2,pct_cum:50.0},
+  {ciudad:'PEREIRA',presupuesto:391000,leads:26,cpl:15149,matriculas:1,meta_mat:2,pct_cum:50.0},
+  {ciudad:'POPAYÁN',presupuesto:12650000,leads:654,cpl:19351,matriculas:23,meta_mat:52,pct_cum:44.2},
+  {ciudad:'PUERTO COLOMBIA',presupuesto:3404000,leads:202,cpl:16861,matriculas:7,meta_mat:16,pct_cum:43.8},
+  {ciudad:'RIOHACHA',presupuesto:1219000,leads:100,cpl:12172,matriculas:4,meta_mat:8,pct_cum:50.0},
+  {ciudad:'ROLDANILLO',presupuesto:253000,leads:24,cpl:10419,matriculas:1,meta_mat:2,pct_cum:50.0},
+  {ciudad:'SANTA MARTA',presupuesto:4140000,leads:277,cpl:14945,matriculas:10,meta_mat:22,pct_cum:45.5},
+  {ciudad:'SEDE VIRTUAL',presupuesto:46552000,leads:2038,cpl:22844,matriculas:71,meta_mat:162,pct_cum:43.8},
+  {ciudad:'TUNJA',presupuesto:4715000,leads:251,cpl:18752,matriculas:9,meta_mat:20,pct_cum:45.0},
+  {ciudad:'VALLEDUPAR',presupuesto:391000,leads:25,cpl:15965,matriculas:1,meta_mat:2,pct_cum:50.0},
+  {ciudad:'VILLAVICENCIO',presupuesto:7429000,leads:352,cpl:21117,matriculas:12,meta_mat:28,pct_cum:42.9}
+];
+
+const charts={};
+function fmt(n){return new Intl.NumberFormat('es-CO').format(n)}
+function fmtM(n){return '$'+(n/1000000).toFixed(1)+'M'}
+
+function switchTab(id,btn){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('panel-'+id).classList.add('active');
+  if(id==='medios'&&!charts.mediosDona)renderMedios();
+  if(id==='meses'&&!charts.meses)renderMeses();
+  if(id==='facultades'&&!charts.facultades)renderFacultades();
+}
+
+function renderCiudades(sortBy='presupuesto'){
+  const top10=[...ciudadesData].sort((a,b)=>b[sortBy]-a[sortBy]).slice(0,10);
+  if(charts.presupuesto)charts.presupuesto.destroy();
+  if(charts.matriculas)charts.matriculas.destroy();
+  charts.presupuesto=new Chart(document.getElementById('cPresupuesto'),{
+    type:'bar',
+    data:{labels:top10.map(c=>c.ciudad.length>12?c.ciudad.slice(0,12)+'…':c.ciudad),datasets:[{label:'Presupuesto',data:top10.map(c=>c.presupuesto),backgroundColor:'#B5D4F4',borderColor:'#185FA5',borderWidth:1.5,borderRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:v=>fmtM(v.raw)}}},scales:{x:{ticks:{font:{size:11},maxRotation:45,autoSkip:false}},y:{ticks:{callback:v=>fmtM(v)}}}}
+  });
+  charts.matriculas=new Chart(document.getElementById('cMatriculas'),{
+    type:'bar',
+    data:{labels:top10.map(c=>c.ciudad.length>12?c.ciudad.slice(0,12)+'…':c.ciudad),datasets:[
+      {label:'Matrículas',data:top10.map(c=>c.matriculas),backgroundColor:'#9FE1CB',borderColor:'#1D9E75',borderWidth:1.5,borderRadius:4},
+      {label:'Meta',data:top10.map(c=>c.meta_mat),type:'line',borderColor:'#D85A30',backgroundColor:'transparent',borderWidth:2,pointRadius:4,tension:0}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:v=>v.dataset.label+': '+v.raw}}},scales:{x:{ticks:{font:{size:11},maxRotation:45,autoSkip:false}},y:{beginAtZero:true}}}
+  });
+  const sorted=[...ciudadesData].sort((a,b)=>b[sortBy]-a[sortBy]);
+  const tbody=sorted.map(c=>{
+    const cls=c.pct_cum>=50?'ok':c.pct_cum>=43?'warn':'bad';
+    return`<tr><td>${c.ciudad}</td><td>${fmtM(c.presupuesto)}</td><td>${fmt(c.leads)}</td><td>$${fmt(c.cpl)}</td><td>${c.matriculas}</td><td>${c.meta_mat}</td><td><span class="badge ${cls}">${c.pct_cum}%</span></td></tr>`;
+  }).join('');
+  document.getElementById('tablaCiudades').innerHTML=`<table class="tbl"><thead><tr><th>Ciudad</th><th>Presupuesto</th><th>Leads</th><th>CPL</th><th>Matríc.</th><th>Meta</th><th>% Cum.</th></tr></thead><tbody>${tbody}</tbody></table>`;
+}
+
+function renderMedios(){
+  charts.mediosDona=new Chart(document.getElementById('cMediosDona'),{
+    type:'doughnut',
+    data:{labels:['Facebook','Google','TikTok'],datasets:[{data:[127052000,63742200,39205800],backgroundColor:['#B5D4F4','#9FE1CB','#FAC775'],borderColor:['#185FA5','#1D9E75','#BA7517'],borderWidth:2}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:v=>v.label+': '+fmtM(v.raw)+' ('+Math.round(v.raw/230000000*100)+'%)'}}},cutout:'60%'}
+  });
+  charts.metodologia=new Chart(document.getElementById('cMetodologia'),{
+    type:'bar',
+    data:{labels:['Presencial','Virtual','Distancia','Híbrido'],datasets:[{label:'Presupuesto',data:[161112714,46552000,15049730,7285556],backgroundColor:['#B5D4F4','#9FE1CB','#FAC775','#F4C0D1'],borderColor:['#185FA5','#1D9E75','#BA7517','#993556'],borderWidth:1.5,borderRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:v=>fmtM(v.raw)}}},scales:{y:{ticks:{callback:v=>fmtM(v)}}}}
+  });
+}
+
+function renderMeses(){
+  charts.meses=new Chart(document.getElementById('cMeses'),{
+    type:'bar',
+    data:{labels:['Mar 2026','Abr 2026','May 2026','Jun 2026'],datasets:[{label:'Presupuesto',data:[11500000,69000000,80500000,69000000],backgroundColor:['#E6F1FB','#85B7EB','#185FA5','#85B7EB'],borderColor:['#185FA5','#185FA5','#0C447C','#185FA5'],borderWidth:1.5,borderRadius:6}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:v=>fmtM(v.raw)}}},scales:{y:{ticks:{callback:v=>fmtM(v)}}}}
+  });
+}
+
+function renderFacultades(){
+  charts.facultades=new Chart(document.getElementById('cFacultades'),{
+    type:'bar',indexAxis:'y',
+    data:{
+      labels:['Cs. Económicas y Adm.','Enfermería','Odontología','Ing. Mecánica/Electr.','Artes','Educación','Ciencias','Terapias Psicosociales'],
+      datasets:[{label:'Presupuesto',data:[47821683,29917579,27650082,22829639,11749240,10061387,10011946,9676831],backgroundColor:'#AFA9EC',borderColor:'#534AB7',borderWidth:1.5,borderRadius:4}]
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:v=>fmtM(v.raw)}}},scales:{x:{ticks:{callback:v=>fmtM(v)}},y:{ticks:{font:{size:12}}}}}
+  });
+}
+
+renderCiudades();
+</script>
+</body>
+</html>
