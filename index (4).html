@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Forecast Digital UAN 2026-2</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --uan-blue:#003DA5;--uan-blue-dark:#002880;--uan-blue-light:#D6E4FF;--uan-blue-mid:#5B8DD9;
+  --uan-red:#C8102E;--uan-dark:#1A1A1A;--uan-gray:#5A5A5A;--uan-gray-light:#F2F4F8;
+  --uan-border:#DDE3EE;--uan-white:#FFFFFF;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--uan-gray-light);color:var(--uan-dark);min-height:100vh}
+.navbar{background:var(--uan-blue-dark);padding:0 2rem;display:flex;align-items:center;justify-content:space-between;height:64px;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,40,128,.3)}
+.navbar-logo{display:flex;align-items:center;gap:16px}
+.logo-img{height:40px;object-fit:contain;filter:brightness(0) invert(1)}
+.navbar-divider{width:1px;height:30px;background:rgba(255,255,255,.25)}
+.navbar-title{color:rgba(255,255,255,.9);font-size:14px;font-weight:500}
+.navbar-right{display:flex;align-items:center;gap:12px}
+.navbar-badge{background:var(--uan-red);color:#fff;font-size:11px;font-weight:700;padding:4px 12px;border-radius:99px}
+.sync-btn{background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);font-size:12px;padding:5px 14px;border-radius:7px;cursor:pointer;display:flex;align-items:center;gap:6px}
+.sync-btn:hover{background:rgba(255,255,255,.25)}
+.sync-dot{width:7px;height:7px;border-radius:50%;background:#4CAF50;flex-shrink:0}
+.sync-dot.spin{background:#FFC107;animation:pulse .8s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.last-upd{font-size:11px;color:rgba(255,255,255,.55)}
+.hero{background:linear-gradient(135deg,var(--uan-blue-dark) 0%,var(--uan-blue) 100%);padding:2rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem}
+.hero h1{color:#fff;font-size:22px;font-weight:700;margin-bottom:4px}
+.hero p{color:rgba(255,255,255,.75);font-size:13px}
+.hero-stats{display:flex;gap:2.5rem}
+.hero-stat .hval{color:#fff;font-size:26px;font-weight:700;line-height:1}
+.hero-stat .hlbl{color:rgba(255,255,255,.6);font-size:11px;margin-top:4px;text-transform:uppercase;letter-spacing:.04em}
+.container{max-width:1200px;margin:0 auto;padding:1.5rem 1.5rem 3rem}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:1.5rem}
+.kpi{background:var(--uan-white);border-radius:10px;padding:18px 20px;border:1px solid var(--uan-border);border-left:4px solid var(--uan-blue)}
+.kpi.accent{border-left-color:var(--uan-red)}
+.kpi.green{border-left-color:#28A745}
+.kpi .lbl{font-size:11px;font-weight:700;color:var(--uan-gray);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
+.kpi .val{font-size:26px;font-weight:700;color:var(--uan-dark);line-height:1}
+.kpi.accent .val{color:var(--uan-blue)}
+.kpi .sub{font-size:12px;color:#999;margin-top:5px}
+.tabs-wrap{background:var(--uan-white);border-radius:10px 10px 0 0;border:1px solid var(--uan-border);border-bottom:none;padding:0 1.25rem;display:flex;overflow-x:auto}
+.tab{padding:13px 16px;font-size:13px;font-weight:500;cursor:pointer;border:none;background:transparent;color:#888;border-bottom:3px solid transparent;transition:all .15s;white-space:nowrap}
+.tab.active{color:var(--uan-blue);border-bottom-color:var(--uan-blue);font-weight:600}
+.tab:hover{color:var(--uan-dark)}
+.panels{background:var(--uan-white);border-radius:0 0 12px 12px;border:1px solid var(--uan-border);padding:1.5rem}
+.panel{display:none}.panel.active{display:block}
+.sec-title{font-size:12px;font-weight:700;color:var(--uan-gray);text-transform:uppercase;letter-spacing:.07em;margin:1.5rem 0 .75rem;display:flex;align-items:center;gap:8px}
+.sec-title::before{content:'';width:4px;height:16px;background:var(--uan-blue);border-radius:2px;flex-shrink:0}
+.sec-title:first-child{margin-top:0}
+.filters{display:flex;gap:10px;margin-bottom:1rem;align-items:center;flex-wrap:wrap;padding:10px 14px;background:var(--uan-gray-light);border-radius:8px;border:1px solid var(--uan-border)}
+.filters label{font-size:12px;font-weight:600;color:var(--uan-gray);text-transform:uppercase;letter-spacing:.04em}
+.filters select{font-size:13px;padding:6px 10px;border:1px solid var(--uan-border);border-radius:7px;background:#fff;color:var(--uan-dark);cursor:pointer}
+.filter-chip{display:flex;align-items:center;gap:6px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;margin-bottom:1rem}
+.g31{display:grid;grid-template-columns:1.4fr 1fr;gap:1rem;margin-bottom:1rem}
+.chart-box{background:var(--uan-gray-light);border-radius:8px;padding:1.1rem;border:1px solid var(--uan-border)}
+.chart-box.full{grid-column:1/-1}
+.chart-box.span2{grid-column:span 2}
+.chart-title{font-size:11px;font-weight:700;color:var(--uan-gray);margin-bottom:12px;text-transform:uppercase;letter-spacing:.06em}
+.legend{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:10px;font-size:12px;color:var(--uan-gray)}
+.legend span{display:flex;align-items:center;gap:5px}
+.legend .dot{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+.tbl-wrap{overflow-x:auto;border-radius:8px;border:1px solid var(--uan-border)}
+.tbl{width:100%;font-size:12.5px;border-collapse:collapse;min-width:400px}
+.tbl thead th{font-size:11px;font-weight:700;color:#fff;text-align:left;padding:9px 12px;background:var(--uan-blue);white-space:nowrap}
+.tbl tbody td{padding:8px 12px;border-bottom:1px solid var(--uan-border);color:var(--uan-dark);white-space:nowrap}
+.tbl tbody tr:last-child td{border-bottom:none}
+.tbl tbody tr:hover td{background:#EEF3FF}
+.tbl tbody tr:nth-child(even) td{background:#F8FAFF}
+.tbl tbody tr:nth-child(even):hover td{background:#EEF3FF}
+.tr-total td{background:#EEF3FF!important;font-weight:700;border-top:2px solid var(--uan-blue-mid)}
+.tr-grand td{background:var(--uan-blue)!important;color:#fff!important;font-weight:700}
+.badge{display:inline-block;font-size:11px;padding:3px 9px;border-radius:99px;font-weight:700}
+.badge.ok{background:#D4EDDA;color:#155724}
+.badge.warn{background:#FFF3CD;color:#7A4A00}
+.badge.bad{background:#F8D7DA;color:#721C24}
+.pbar-wrap{display:flex;align-items:center;gap:8px}
+.pbar{flex:1;height:6px;background:#E0E0E0;border-radius:3px;min-width:50px}
+.pbar-fill{height:100%;border-radius:3px}
+.pbar-fill.ok{background:#28A745}.pbar-fill.warn{background:#FFC107}.pbar-fill.bad{background:#DC3545}
+/* RESUMEN specific */
+.resumen-kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:1.5rem}
+.rkpi{background:var(--uan-white);border-radius:10px;padding:16px 18px;border:1px solid var(--uan-border);text-align:center}
+.rkpi .rlbl{font-size:10px;font-weight:700;color:var(--uan-gray);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.rkpi .rval{font-size:22px;font-weight:700;color:var(--uan-blue);line-height:1}
+.rkpi .rsub{font-size:11px;color:#999;margin-top:4px}
+.rkpi.red .rval{color:var(--uan-red)}
+.rkpi.green .rval{color:#28A745}
+.progress-ring{position:relative;display:flex;align-items:center;justify-content:center}
+.ring-label{position:absolute;font-size:18px;font-weight:700;color:var(--uan-blue)}
+/* Top lists */
+.top-list{list-style:none;padding:0}
+.top-list li{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--uan-border);font-size:13px}
+.top-list li:last-child{border-bottom:none}
+.top-list .rank{width:20px;height:20px;border-radius:50%;background:var(--uan-blue-light);color:var(--uan-blue);font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.top-list .rank.r1{background:var(--uan-blue);color:#fff}
+.top-list .name{flex:1;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.top-list .amount{font-size:12px;color:var(--uan-gray);font-weight:600}
+.spin-wrap{display:flex;flex-direction:column;align-items:center;padding:4rem;gap:1rem}
+.spinner{width:36px;height:36px;border:3px solid var(--uan-blue-light);border-top-color:var(--uan-blue);border-radius:50%;animation:rotate .8s linear infinite}
+@keyframes rotate{to{transform:rotate(360deg)}}
+.spin-wrap p{font-size:14px;color:var(--uan-gray)}
+.footer{text-align:center;padding:2rem 0 1rem;font-size:12px;color:#aaa}
+.footer strong{color:var(--uan-blue)}
+@media(max-width:800px){
+  .resumen-kpis{grid-template-columns:1fr 1fr}
+  .g2,.g3,.g31{grid-template-columns:1fr}
+  .kpis{grid-template-columns:1fr 1fr}
+  .navbar-title,.last-upd{display:none}
+  .hero-stats{gap:1.2rem}
+  .container{padding:1rem}
+}
+</style>
+</head>
+<body>
+<nav class="navbar">
+  <div class="navbar-logo">
+    <img class="logo-img" src="https://www.uan.edu.co/images/admin/LogoUAN.png" alt="UAN" onerror="this.style.display='none';document.getElementById('utxt').style.display='block'">
+    <span id="utxt" style="display:none;color:#fff;font-size:20px;font-weight:800">UAN</span>
+    <div class="navbar-divider"></div>
+    <span class="navbar-title">Dashboard de Forecast Digital</span>
+  </div>
+  <div class="navbar-right">
+    <span class="last-upd" id="lastUpd"></span>
+    <button class="sync-btn" id="syncBtn" onclick="loadAll()">
+      <span class="sync-dot" id="syncDot"></span>Actualizar data
+    </button>
+    <span class="navbar-badge">2026-2</span>
+  </div>
+</nav>
+
+<div class="hero">
+  <div><h1>Forecast Digital — 2026-2</h1><p>Universidad Antonio Nariño · Inversión, Leads y Matrículas por sede, medio y programa</p></div>
+  <div class="hero-stats">
+    <div class="hero-stat"><div class="hval" id="hP">—</div><div class="hlbl">Presupuesto</div></div>
+    <div class="hero-stat"><div class="hval" id="hL">—</div><div class="hlbl">Leads</div></div>
+    <div class="hero-stat"><div class="hval" id="hM">—</div><div class="hlbl">Matríc. / <span id="hMeta" style="opacity:.8">—</span> meta</div></div>
+    <div class="hero-stat"><div class="hval" id="hC">—</div><div class="hlbl">Cumplimiento</div></div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="tabs-wrap">
+    <button class="tab active" onclick="switchTab('resumen',this)">&#9733; Resumen ejecutivo</button>
+    <button class="tab" onclick="switchTab('ciudades',this)">Por ciudad</button>
+    <button class="tab" onclick="switchTab('medios',this)">Por medio</button>
+    <button class="tab" onclick="switchTab('meses',this)">Por mes</button>
+    <button class="tab" onclick="switchTab('facultades',this)">Por facultad</button>
+    <button class="tab" onclick="switchTab('sedes',this)">Por sede</button>
+    <button class="tab" onclick="switchTab('programas',this)">Por programa</button>
+  </div>
+
+  <div class="panels">
+
+    <!-- ======= RESUMEN EJECUTIVO ======= -->
+    <div id="panel-resumen" class="panel active">
+      <div id="sp-resumen" class="spin-wrap"><div class="spinner"></div><p>Cargando desde Google Sheets...</p></div>
+      <div id="ct-resumen" style="display:none">
+
+        <!-- KPIs top -->
+        <div class="resumen-kpis">
+          <div class="rkpi"><div class="rlbl">Presupuesto total</div><div class="rval" id="rP">—</div><div class="rsub">COP</div></div>
+          <div class="rkpi"><div class="rlbl">Leads proyectados</div><div class="rval" id="rL">—</div><div class="rsub">Total sedes</div></div>
+          <div class="rkpi"><div class="rlbl">Matrículas forecast</div><div class="rval" id="rM">—</div><div style="margin-top:6px"><span style="font-size:18px;font-weight:700;color:var(--uan-dark)" id="rMeta">—</span><span style="font-size:11px;color:#999"> meta total</span></div><div style="font-size:11px;color:#999;margin-top:2px" id="rMsub">de — meta</div></div>
+          <div class="rkpi"><div class="rlbl">CPL promedio</div><div class="rval" id="rCPL">—</div><div class="rsub">Costo por lead</div></div>
+          <div class="rkpi"><div class="rlbl">Cumplimiento</div><div class="rval" id="rC">—</div><div class="rsub">vs meta matrículas</div></div>
+        </div>
+
+        <!-- Row 1: Donut medios + Barras ciudad + Top ciudades -->
+        <div class="g31">
+          <div class="chart-box">
+            <div class="chart-title">Inversión por medio</div>
+            <div class="legend" id="rLegMedio"></div>
+            <div style="position:relative;height:220px"><canvas id="rDona"></canvas></div>
+          </div>
+          <div class="chart-box">
+            <div class="chart-title">Top ciudades por inversión</div>
+            <ul class="top-list" id="rTopCiudades"></ul>
+          </div>
+        </div>
+
+        <!-- Row 2: Barras ciudades + Mes -->
+        <div class="g2">
+          <div class="chart-box">
+            <div class="chart-title">Inversión por ciudad (Top 8)</div>
+            <div style="position:relative;height:240px"><canvas id="rBarCiudad"></canvas></div>
+          </div>
+          <div class="chart-box">
+            <div class="chart-title">Distribución mensual de inversión</div>
+            <div style="position:relative;height:240px"><canvas id="rBarMes"></canvas></div>
+          </div>
+        </div>
+
+        <!-- Row 3: Facultades horizontal + Metodología -->
+        <div class="g2">
+          <div class="chart-box">
+            <div class="chart-title">Inversión por facultad (Top 6)</div>
+            <div style="position:relative;height:240px"><canvas id="rBarFac"></canvas></div>
+          </div>
+          <div class="chart-box">
+            <div class="chart-title">Inversión por metodología</div>
+            <div style="position:relative;height:240px"><canvas id="rBarMet"></canvas></div>
+          </div>
+        </div>
+
+        <!-- Row 4: Cumplimiento por ciudad tabla + Top programas -->
+        <div class="g2">
+          <div class="chart-box">
+            <div class="chart-title">Cumplimiento vs meta por ciudad (Top 10)</div>
+            <div style="position:relative;height:260px"><canvas id="rCumplCiudad"></canvas></div>
+          </div>
+          <div class="chart-box">
+            <div class="chart-title">Top 10 programas por inversión</div>
+            <ul class="top-list" id="rTopProg"></ul>
+          </div>
+        </div>
+
+        <!-- Row 5: Top facultades cumplimiento -->
+        <div class="sec-title">Resumen de cumplimiento por facultad</div>
+        <div class="tbl-wrap"><table class="tbl" id="rTblFac"></table></div>
+
+      </div>
+    </div>
+
+    <!-- CIUDADES -->
+    <div id="panel-ciudades" class="panel">
+      <div id="sp-ciudades" class="spin-wrap"><div class="spinner"></div><p>Cargando...</p></div>
+      <div id="ct-ciudades" style="display:none">
+        <div class="filters"><div class="filter-chip"><label>Ordenar por:</label>
+          <select onchange="renderCiudades(this.value)">
+            <option value="presupuesto">Presupuesto</option><option value="leads">Leads</option>
+            <option value="matriculas">Matrículas</option><option value="cpl">CPL</option><option value="pct_cum">% Cumplimiento</option>
+          </select></div></div>
+        <div class="g2">
+          <div class="chart-box"><div class="chart-title">Presupuesto Top 10</div><div style="position:relative;height:280px"><canvas id="cPres"></canvas></div></div>
+          <div class="chart-box"><div class="chart-title">Matrículas vs Meta</div><div style="position:relative;height:280px"><canvas id="cMat"></canvas></div></div>
+        </div>
+        <div class="sec-title">Detalle por ciudad</div>
+        <div class="tbl-wrap"><table class="tbl" id="tblCiudades"></table></div>
+      </div>
+    </div>
+
+    <!-- MEDIOS -->
+    <div id="panel-medios" class="panel">
+      <div id="sp-medios" class="spin-wrap"><div class="spinner"></div><p>Cargando...</p></div>
+      <div id="ct-medios" style="display:none">
+        <div class="filters">
+          <div class="filter-chip"><label>Medio:</label><select id="fMedio" onchange="renderMedios()"><option value="todos">Todos</option><option value="Facebook">Facebook</option><option value="Google">Google</option><option value="Tiktok">TikTok</option></select></div>
+          <div class="filter-chip"><label>Ciudad:</label><select id="fCiudadM" onchange="renderMedios()"><option value="todas">Todas</option></select></div>
+        </div>
+        <div class="g2">
+          <div class="chart-box"><div class="chart-title">Distribución por medio</div>
+            <div class="legend"><span><span class="dot" style="background:#003DA5"></span>Facebook</span><span><span class="dot" style="background:#5B8DD9"></span>Google</span><span><span class="dot" style="background:#A8BFED"></span>TikTok</span></div>
+            <div style="position:relative;height:260px"><canvas id="cDona"></canvas></div>
+          </div>
+          <div class="chart-box"><div class="chart-title">Por ciudad y medio</div><div style="position:relative;height:260px"><canvas id="cBars"></canvas></div></div>
+        </div>
+        <div class="sec-title">Desglose por ciudad y medio</div>
+        <div class="tbl-wrap"><table class="tbl" id="tblMedios"></table></div>
+      </div>
+    </div>
+
+    <!-- MESES -->
+    <div id="panel-meses" class="panel">
+      <div id="sp-meses" class="spin-wrap"><div class="spinner"></div><p>Cargando...</p></div>
+      <div id="ct-meses" style="display:none">
+        <div class="filters">
+          <div class="filter-chip"><label>Ciudad:</label><select id="fCiudadMes" onchange="renderMeses()"><option value="todas">Todas</option></select></div>
+          <div class="filter-chip"><label>Canal:</label><select id="fMedioMes" onchange="renderMeses()"><option value="todos">Todos</option><option value="Facebook">Facebook</option><option value="Google">Google</option><option value="Tiktok">TikTok</option></select></div>
+        </div>
+        <div class="chart-box full" style="margin-bottom:1rem"><div class="chart-title">Inversión mensual por canal</div><div style="position:relative;height:290px"><canvas id="cMeses"></canvas></div></div>
+        <div class="sec-title">Inversión mes a mes por ciudad y canal</div>
+        <div class="tbl-wrap"><table class="tbl" id="tblMeses"></table></div>
+      </div>
+    </div>
+
+    <!-- FACULTADES -->
+    <div id="panel-facultades" class="panel">
+      <div id="sp-facultades" class="spin-wrap"><div class="spinner"></div><p>Cargando...</p></div>
+      <div id="ct-facultades" style="display:none">
+        <div class="chart-box full" style="margin-bottom:1rem"><div class="chart-title">Presupuesto por facultad</div><div style="position:relative;height:340px"><canvas id="cFac"></canvas></div></div>
+        <div class="sec-title">Inversión y cumplimiento por facultad</div>
+        <div class="tbl-wrap"><table class="tbl" id="tblFac"></table></div>
+      </div>
+    </div>
+
+    <!-- SEDES -->
+    <div id="panel-sedes" class="panel">
+      <div id="sp-sedes" class="spin-wrap"><div class="spinner"></div><p>Cargando...</p></div>
+      <div id="ct-sedes" style="display:none">
+        <div class="chart-box full" style="margin-bottom:1rem"><div class="chart-title">Presupuesto Top 10 sedes</div><div style="position:relative;height:320px"><canvas id="cSedes"></canvas></div></div>
+        <div class="sec-title">Detalle por sede</div>
+        <div class="tbl-wrap"><table class="tbl" id="tblSedes"></table></div>
+      </div>
+    </div>
+
+    <!-- PROGRAMAS -->
+    <div id="panel-programas" class="panel">
+      <div id="sp-programas" class="spin-wrap"><div class="spinner"></div><p>Cargando...</p></div>
+      <div id="ct-programas" style="display:none">
+        <div class="filters">
+          <div class="filter-chip"><label>Facultad:</label><select id="fFac" onchange="renderProgramas()"><option value="todas">Todas</option></select></div>
+          <div class="filter-chip"><label>Metodología:</label><select id="fMet" onchange="renderProgramas()"><option value="todas">Todas</option><option value="Presencial">Presencial</option><option value="Virtual">Virtual</option><option value="Distancia">Distancia</option><option value="Hibrido">Híbrido</option></select></div>
+          <div class="filter-chip"><label>Ciudad:</label><select id="fCiudadP" onchange="renderProgramas()"><option value="todas">Todas</option></select></div>
+        </div>
+        <div class="sec-title">Desglose por programa <span id="progCnt" style="font-weight:400;font-size:11px;color:#999;text-transform:none;letter-spacing:0"></span></div>
+        <div class="tbl-wrap"><table class="tbl" id="tblProg"></table></div>
+      </div>
+    </div>
+
+  </div>
+  <div class="footer">
+    <img src="https://www.uan.edu.co/images/admin/LogoUAN.png" alt="" style="height:24px;opacity:.35;vertical-align:middle;margin-right:6px" onerror="this.style.display='none'">
+    Dashboard de Forecast Digital · <strong>Universidad Antonio Nariño</strong> · Periodo 2026-2
+  </div>
+</div>
+
+<script>
+const BLUE='#003DA5',MID='#5B8DD9',LIGHT='#A8BFED',RED='#C8102E';
+const BLUES=['#002880','#003DA5','#1A55C0','#3A72D8','#5B8DD9','#7FAAE0','#A8BFED','#C8D8F5'];
+const CH={};
+const BASE='https://docs.google.com/spreadsheets/d/e/2PACX-1vRwJQPslpw-WvCvV9t1M6bwAbHDGmXIANEEQlWSyk1zeCrZQGePzyq625mpvhROK1GZOoJg8HqtzvC3/pub?gid=';
+const URLS={
+  programa: BASE+'1432798497&single=true&output=csv',
+  medio:    BASE+'286855002&single=true&output=csv',
+  mes:      BASE+'1540897893&single=true&output=csv'
+};
+var ciudadesData=[],mediosData=[],mesData={},facultadesData=[],sedesData=[],programasData=[];
+
+function fmt(n){return new Intl.NumberFormat('es-CO').format(Math.round(parseFloat(n)||0));}
+function fmtM(n){n=parseFloat(n)||0;return '$'+(n/1000000).toFixed(1)+'M';}
+function parseNum(s){
+  if(!s)return 0;s=s.toString().trim().replace(/[$\s]/g,'');
+  if(s.endsWith('%'))return parseFloat(s.replace('%','').replace(',','.'))||0;
+  if(s.indexOf(',')>-1){var p=s.split(',');return parseFloat(p[0].replace(/\./g,'')+'.'+p[1])||0;}
+  return parseFloat(s.replace(/\./g,''))||0;
+}
+function badgeCls(p){return p>=50?'ok':p>=43?'warn':'bad';}
+function pbar(p){
+  p=parseFloat(p)||0;var c=badgeCls(p);
+  return '<div class="pbar-wrap"><div class="pbar"><div class="pbar-fill '+c+'" style="width:'+Math.min(p,100)+'%"></div></div><span class="badge '+c+'" style="font-size:10px;padding:2px 7px">'+p.toFixed(1)+'%</span></div>';
+}
+function parseCSV(text){
+  var lines=text.trim().split('\n'),headers=splitLine(lines[0]),rows=[];
+  for(var i=1;i<lines.length;i++){var v=splitLine(lines[i]);if(!v.join('').trim())continue;var o={};headers.forEach(function(h,j){o[h.trim()]=v[j]?v[j].trim():'';});rows.push(o);}
+  return rows;
+}
+function splitLine(line){
+  var r=[],c='',q=false;
+  for(var i=0;i<line.length;i++){var ch=line[i];if(ch==='"'){q=!q;}else if(ch===','&&!q){r.push(c);c='';}else{c+=ch;}}
+  r.push(c);return r;
+}
+function fetchCSV(url){return fetch(url).then(function(r){return r.text();}).then(parseCSV);}
+function show(p,ok){document.getElementById('sp-'+p).style.display=ok?'none':'flex';document.getElementById('ct-'+p).style.display=ok?'block':'none';}
+function setSyncing(on){document.getElementById('syncDot').className='sync-dot'+(on?' spin':'');document.getElementById('syncBtn').disabled=on;}
+
+function loadAll(){
+  setSyncing(true);
+  ['resumen','ciudades','medios','meses','facultades','sedes','programas'].forEach(function(p){show(p,false);});
+  Promise.all([fetchCSV(URLS.medio),fetchCSV(URLS.mes),fetchCSV(URLS.programa)]).then(function(res){
+    processData(res[0],res[1],res[2]);
+    setSyncing(false);
+    var now=new Date();
+    document.getElementById('lastUpd').textContent='Actualizado: '+now.toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'});
+  }).catch(function(e){console.error(e);setSyncing(false);alert('Error cargando data.');});
+}
+
+function processData(medio,mes,programa){
+  mediosData=[];
+  medio.forEach(function(r){
+    var ciudad=r['Ciudad']||'',med=r['Medio']||'',pres=parseNum(r['Presupuesto']),pct=parseNum(r['% Canal']);
+    if(!ciudad||!med||!pres)return;
+    mediosData.push({ciudad:ciudad,medio:med,presupuesto:pres,pct_canal:pct});
+  });
+  var cMap={};
+  mediosData.forEach(function(r){if(!cMap[r.ciudad])cMap[r.ciudad]={ciudad:r.ciudad,presupuesto:0};cMap[r.ciudad].presupuesto+=r.presupuesto;});
+
+  programasData=[];
+  var facMap={},sedeMap={},cMapP={};
+  programa.forEach(function(r){
+    var ciudad=r['Ciudad']||'',sede=r['Sede']||'',fac=r['Facultad']||'';
+    var met=r['Metodología']||r['Metodologia']||'',prog=r['Nombre programa']||'';
+    var pres=parseNum(r['Presupuesto']),cpl=parseNum(r['CPL']),leads=parseNum(r['Leads']);
+    var mat=parseNum(r['Matriculas']),meta=parseNum(r['Meta Matriculas']),pct=parseNum(r['% Cum']);
+    if(pct>0&&pct<=1)pct*=100;
+    if(!ciudad||!prog)return;
+    programasData.push({ciudad:ciudad,sede:sede,facultad:fac,metodologia:met,programa:prog,presupuesto:pres,cpl:cpl,leads:leads,matriculas:mat,meta:meta,pct_cum:pct});
+    if(!cMapP[ciudad])cMapP[ciudad]={presupuesto:0,leads:0,matriculas:0,meta:0};
+    cMapP[ciudad].presupuesto+=pres;cMapP[ciudad].leads+=leads;cMapP[ciudad].matriculas+=mat;cMapP[ciudad].meta+=meta;
+    if(!facMap[fac])facMap[fac]={facultad:fac,presupuesto:0,leads:0,matriculas:0,meta:0};
+    facMap[fac].presupuesto+=pres;facMap[fac].leads+=leads;facMap[fac].matriculas+=mat;facMap[fac].meta+=meta;
+    var sk=ciudad+(sede&&sede!='NA'?' - '+sede:'');
+    if(!sedeMap[sk])sedeMap[sk]={sede:sk,presupuesto:0,leads:0,matriculas:0,meta:0};
+    sedeMap[sk].presupuesto+=pres;sedeMap[sk].leads+=leads;sedeMap[sk].matriculas+=mat;sedeMap[sk].meta+=meta;
+  });
+
+  ciudadesData=Object.keys(cMap).map(function(c){
+    var cp=cMapP[c]||{leads:0,matriculas:0,meta:0};
+    var pres=cMap[c].presupuesto,leads=cp.leads,mat=cp.matriculas,meta=cp.meta;
+    return {ciudad:c,presupuesto:pres,leads:leads,cpl:leads>0?pres/leads:0,matriculas:mat,meta_mat:meta,pct_cum:meta>0?mat/meta*100:0};
+  }).filter(function(c){return c.presupuesto>0;}).sort(function(a,b){return b.presupuesto-a.presupuesto;});
+
+  facultadesData=Object.values(facMap).map(function(f){f.pct_cum=f.meta>0?f.matriculas/f.meta*100:0;return f;}).sort(function(a,b){return b.presupuesto-a.presupuesto;});
+  sedesData=Object.values(sedeMap).map(function(s){s.pct_cum=s.meta>0?s.matriculas/s.meta*100:0;return s;}).sort(function(a,b){return b.presupuesto-a.presupuesto;});
+
+  mesData={};
+  mes.forEach(function(r){
+    var ciudad=r['Ciudad']||'',med=r['Medio']||'',mv=r['Mes']||'',pmes=parseNum(r['Presupuesto Mes']);
+    if(!ciudad||!med||!mv)return;
+    var mk=mv.toLowerCase().trim(),idx=-1;
+    if(mk.includes('mar')||mk.includes('03'))idx=0;
+    else if(mk.includes('abr')||mk.includes('apr')||mk.includes('04'))idx=1;
+    else if(mk.includes('may')||mk.includes('05'))idx=2;
+    else if(mk.includes('jun')||mk.includes('06'))idx=3;
+    if(idx<0)return;
+    if(!mesData[ciudad])mesData[ciudad]={Facebook:[0,0,0,0],Google:[0,0,0,0],Tiktok:[0,0,0,0],total:[0,0,0,0],gran_total:0};
+    var m=med.charAt(0).toUpperCase()+med.slice(1);
+    if(!mesData[ciudad][m])mesData[ciudad][m]=[0,0,0,0];
+    mesData[ciudad][m][idx]+=pmes;mesData[ciudad].total[idx]+=pmes;mesData[ciudad].gran_total+=pmes;
+  });
+
+  var totP=ciudadesData.reduce(function(s,c){return s+c.presupuesto;},0);
+  var totL=ciudadesData.reduce(function(s,c){return s+c.leads;},0);
+  var totM=ciudadesData.reduce(function(s,c){return s+c.matriculas;},0);
+  var totMeta=ciudadesData.reduce(function(s,c){return s+c.meta_mat;},0);
+  var pctG=totMeta>0?totM/totMeta*100:0;
+  var cplProm=totL>0?totP/totL:0;
+  ['hP','rP'].forEach(function(id){document.getElementById(id).textContent=fmtM(totP);});
+  ['hL','rL'].forEach(function(id){document.getElementById(id).textContent=fmt(totL);});
+  ['hM','rM'].forEach(function(id){document.getElementById(id).textContent=fmt(totM);});if(document.getElementById('hMeta'))document.getElementById('hMeta').textContent=fmt(totMeta);
+  ['hC','rC'].forEach(function(id){document.getElementById(id).textContent=pctG.toFixed(1)+'%';});
+  document.getElementById('rCPL').textContent='$'+fmt(cplProm);
+  document.getElementById('rMeta').textContent=fmt(totMeta);
+  document.getElementById('rMsub').innerHTML='<span style="color:var(--uan-blue);font-weight:700">'+pctG.toFixed(1)+'%</span> cumplido';
+
+  // Populate filters
+  var ciudades=ciudadesData.map(function(c){return c.ciudad;}).sort();
+  ['fCiudadM','fCiudadMes','fCiudadP'].forEach(function(id){
+    var sel=document.getElementById(id);while(sel.options.length>1)sel.remove(1);
+    ciudades.forEach(function(c){var o=document.createElement('option');o.value=c;o.textContent=c;sel.appendChild(o);});
+  });
+  var facs=[...new Set(programasData.map(function(p){return p.facultad;}))].sort();
+  var sf=document.getElementById('fFac');while(sf.options.length>1)sf.remove(1);
+  facs.forEach(function(f){var o=document.createElement('option');o.value=f;o.textContent=f;sf.appendChild(o);});
+
+  ['resumen','ciudades','medios','meses','facultades','sedes','programas'].forEach(function(p){show(p,true);});
+  Object.keys(CH).forEach(function(k){if(CH[k]){CH[k].destroy();delete CH[k];}});
+  renderResumen();
+  renderCiudades('presupuesto');
+  renderMedios();
+  renderMeses();
+  renderFacultades();
+  renderSedes();
+  renderProgramas();
+}
+
+function switchTab(id,btn){
+  document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});
+  document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active');});
+  btn.classList.add('active');document.getElementById('panel-'+id).classList.add('active');
+}
+
+// ===== RESUMEN EJECUTIVO =====
+function renderResumen(){
+  // Totales medios
+  var totMedio={Facebook:0,Google:0,Tiktok:0};
+  mediosData.forEach(function(d){totMedio[d.medio]=(totMedio[d.medio]||0)+d.presupuesto;});
+  var totAll=totMedio.Facebook+totMedio.Google+totMedio.Tiktok;
+
+  // Donut medios
+  if(CH.rDona)CH.rDona.destroy();
+  CH.rDona=new Chart(document.getElementById('rDona'),{type:'doughnut',
+    data:{labels:['Facebook','Google','TikTok'],datasets:[{data:[totMedio.Facebook,totMedio.Google,totMedio.Tiktok],backgroundColor:[BLUE,MID,LIGHT],borderColor:['#fff','#fff','#fff'],borderWidth:3}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'58%',plugins:{legend:{display:false},tooltip:{callbacks:{label:function(v){return v.label+': '+fmtM(v.raw)+' ('+Math.round(v.raw/totAll*100)+'%)';}}}}}});
+
+  // Legend medios
+  var medNombres=['Facebook','Google','TikTok'];
+  var medColores=[BLUE,MID,LIGHT];
+  var medVals=[totMedio.Facebook,totMedio.Google,totMedio.Tiktok];
+  document.getElementById('rLegMedio').innerHTML=medNombres.map(function(n,i){
+    return '<span><span class="dot" style="background:'+medColores[i]+'"></span>'+n+' '+fmtM(medVals[i])+' ('+Math.round(medVals[i]/totAll*100)+'%)</span>';
+  }).join('');
+
+  // Top ciudades list
+  var top5=ciudadesData.slice(0,5);
+  document.getElementById('rTopCiudades').innerHTML=top5.map(function(c,i){
+    return '<li><span class="rank'+(i===0?' r1':'')+'>'+(i+1)+'</span><span class="name">'+c.ciudad+'</span><span class="amount">'+fmtM(c.presupuesto)+'</span></li>';
+  }).join('');
+
+  // Bar ciudades
+  var top8=ciudadesData.slice(0,8);
+  if(CH.rBarC)CH.rBarC.destroy();
+  CH.rBarC=new Chart(document.getElementById('rBarCiudad'),{type:'bar',
+    data:{labels:top8.map(function(c){return c.ciudad.length>10?c.ciudad.slice(0,10)+'…':c.ciudad;}),
+      datasets:[{label:'Presupuesto',data:top8.map(function(c){return c.presupuesto;}),backgroundColor:BLUES.slice(0,8),borderRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(v){return fmtM(v.raw);}}}},
+      scales:{x:{ticks:{font:{size:10},maxRotation:35,autoSkip:false}},y:{ticks:{callback:function(v){return fmtM(v);},font:{size:10}}}}}});
+
+  // Bar meses
+  var mesLabels=['Mar 2026','Abr 2026','May 2026','Jun 2026'];
+  var mesTotales=[0,0,0,0];
+  Object.values(mesData).forEach(function(c){c.total.forEach(function(v,i){mesTotales[i]+=v;});});
+  if(CH.rBarMes)CH.rBarMes.destroy();
+  CH.rBarMes=new Chart(document.getElementById('rBarMes'),{type:'bar',
+    data:{labels:mesLabels,datasets:[{label:'Inversión',data:mesTotales,backgroundColor:[LIGHT,MID,BLUE,MID],borderRadius:6}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(v){return fmtM(v.raw);}}}},
+      scales:{y:{ticks:{callback:function(v){return fmtM(v);}}}}}});
+
+  // Bar facultades top 6
+  var top6Fac=facultadesData.slice(0,6);
+  if(CH.rBarFac)CH.rBarFac.destroy();
+  CH.rBarFac=new Chart(document.getElementById('rBarFac'),{type:'bar',indexAxis:'y',
+    data:{labels:top6Fac.map(function(f){return f.facultad.length>22?f.facultad.slice(0,22)+'…':f.facultad;}),
+      datasets:[{label:'Presupuesto',data:top6Fac.map(function(f){return f.presupuesto;}),backgroundColor:BLUES.slice(0,6),borderRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(v){return fmtM(v.raw);}}}},
+      scales:{x:{ticks:{callback:function(v){return fmtM(v);},font:{size:10}}},y:{ticks:{font:{size:11}}}}}});
+
+  // Bar metodología
+  var metMap={};
+  programasData.forEach(function(p){if(!metMap[p.metodologia])metMap[p.metodologia]=0;metMap[p.metodologia]+=p.presupuesto;});
+  var metKeys=Object.keys(metMap).sort(function(a,b){return metMap[b]-metMap[a];});
+  if(CH.rBarMet)CH.rBarMet.destroy();
+  CH.rBarMet=new Chart(document.getElementById('rBarMet'),{type:'doughnut',
+    data:{labels:metKeys,datasets:[{data:metKeys.map(function(k){return metMap[k];}),backgroundColor:[BLUE,MID,LIGHT,'#C8D8F5'],borderColor:['#fff','#fff','#fff','#fff'],borderWidth:3}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:'bottom',labels:{boxWidth:12,font:{size:11}}},tooltip:{callbacks:{label:function(v){return v.label+': '+fmtM(v.raw);}}}},cutout:'55%'}});
+
+  // Bar cumplimiento ciudades
+  var top10C=ciudadesData.slice(0,10);
+  if(CH.rCumpl)CH.rCumpl.destroy();
+  CH.rCumpl=new Chart(document.getElementById('rCumplCiudad'),{type:'bar',
+    data:{labels:top10C.map(function(c){return c.ciudad.length>10?c.ciudad.slice(0,10)+'…':c.ciudad;}),
+      datasets:[
+        {label:'% Cumplimiento',data:top10C.map(function(c){return c.pct_cum.toFixed(1);}),backgroundColor:top10C.map(function(c){return c.pct_cum>=50?'#28A745':c.pct_cum>=43?'#FFC107':'#DC3545';}),borderRadius:4},
+        {label:'Meta 100%',data:top10C.map(function(){return 100;}),type:'line',borderColor:'rgba(0,61,165,.3)',borderDash:[4,4],pointRadius:0,borderWidth:1.5,backgroundColor:'transparent'}
+      ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(v){return v.dataset.label+': '+v.raw+'%';}}}},
+      scales:{x:{ticks:{font:{size:10},maxRotation:35,autoSkip:false}},y:{max:110,ticks:{callback:function(v){return v+'%';},font:{size:10}}}}}});
+
+  // Top programas list
+  var top10P=[...programasData].sort(function(a,b){return b.presupuesto-a.presupuesto;}).slice(0,10);
+  document.getElementById('rTopProg').innerHTML=top10P.map(function(p,i){
+    return '<li><span class="rank'+(i===0?' r1':'')+'>'+(i+1)+'</span><span class="name" title="'+p.programa+'">'+p.programa+'</span><span class="amount">'+fmtM(p.presupuesto)+'</span></li>';
+  }).join('');
+
+  // Tabla facultades resumen
+  var rows=facultadesData.map(function(f){return '<tr><td><strong>'+f.facultad+'</strong></td><td>'+fmtM(f.presupuesto)+'</td><td>'+fmt(f.leads)+'</td><td>'+f.matriculas.toFixed(1)+'</td><td>'+f.meta+'</td><td>'+pbar(f.pct_cum)+'</td></tr>';}).join('');
+  document.getElementById('rTblFac').innerHTML='<thead><tr><th>Facultad</th><th>Presupuesto</th><th>Leads</th><th>Matrículas</th><th>Meta</th><th>% Cumplimiento</th></tr></thead><tbody>'+rows+'</tbody>';
+}
+
+// ===== CIUDADES =====
+function renderCiudades(s){
+  if(!ciudadesData.length)return;s=s||'presupuesto';
+  var top10=[...ciudadesData].sort(function(a,b){return b[s]-a[s];}).slice(0,10);
+  if(CH.pres)CH.pres.destroy();if(CH.mat)CH.mat.destroy();
+  CH.pres=new Chart(document.getElementById('cPres'),{type:'bar',
+    data:{labels:top10.map(function(c){return c.ciudad.length>12?c.ciudad.slice(0,12)+'…':c.ciudad;}),datasets:[{label:'Presupuesto',data:top10.map(function(c){return c.presupuesto;}),backgroundColor:LIGHT,borderColor:BLUE,borderWidth:2,borderRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(v){return fmtM(v.raw);}}}},scales:{x:{ticks:{font:{size:10},maxRotation:40,autoSkip:false}},y:{ticks:{callback:function(v){return fmtM(v);},font:{size:10}}}}}});
+  CH.mat=new Chart(document.getElementById('cMat'),{type:'bar',
+    data:{labels:top10.map(function(c){return c.ciudad.length>12?c.ciudad.slice(0,12)+'…':c.ciudad;}),datasets:[
+      {label:'Matrículas',data:top10.map(function(c){return c.matriculas;}),backgroundColor:LIGHT,borderColor:BLUE,borderWidth:2,borderRadius:4},
+      {label:'Meta',data:top10.map(function(c){return c.meta_mat;}),type:'line',borderColor:RED,backgroundColor:'transparent',borderWidth:2,pointRadius:4,pointBackgroundColor:RED,tension:0}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(v){return v.dataset.label+': '+Math.round(v.raw);}}}},scales:{x:{ticks:{font:{size:10},maxRotation:40,autoSkip:false}},y:{beginAtZero:true}}}});
+  var sorted=[...ciudadesData].sort(function(a,b){return b[s]-a[s];});
+  var rows=sorted.map(function(c){return '<tr><td><strong>'+c.ciudad+'</strong></td><td>'+fmtM(c.presupuesto)+'</td><td>'+fmt(c.leads)+'</td><td>$'+fmt(c.cpl)+'</td><td>'+Math.round(c.matriculas)+'</td><td>'+Math.round(c.meta_mat)+'</td><td>'+pbar(c.pct_cum)+'</td></tr>';}).join('');
+  document.getElementById('tblCiudades').innerHTML='<thead><tr><th>Ciudad</th><th>Presupuesto</th><th>Leads</th><th>CPL</th><th>Matríc.</th><th>Meta</th><th>% Cumplimiento</th></tr></thead><tbody>'+rows+'</tbody>';
+}
+
+// ===== MEDIOS =====
+function renderMedios(){
+  if(!mediosData.length)return;
+  var fm=document.getElementById('fMedio').value,fc=document.getElementById('fCiudadM').value;
+  var data=mediosData;
+  if(fm!=='todos')data=data.filter(function(d){return d.medio===fm;});
+  if(fc!=='todas')data=data.filter(function(d){return d.ciudad===fc;});
+  var tot={Facebook:0,Google:0,Tiktok:0};
+  mediosData.forEach(function(d){tot[d.medio]=(tot[d.medio]||0)+d.presupuesto;});
+  var tA=tot.Facebook+tot.Google+tot.Tiktok;
+  if(CH.dona)CH.dona.destroy();
+  CH.dona=new Chart(document.getElementById('cDona'),{type:'doughnut',
+    data:{labels:['Facebook','Google','TikTok'],datasets:[{data:[tot.Facebook,tot.Google,tot.Tiktok],backgroundColor:[BLUE,MID,LIGHT],borderColor:['#fff','#fff','#fff'],borderWidth:3}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(v){return v.label+': '+fmtM(v.raw)+' ('+Math.round(v.raw/tA*100)+'%)';}}}},cutout:'62%'}});
+  var cas=[...new Set(data.map(function(d){return d.ciudad;}))].slice(0,10);
+  var fbD=cas.map(function(c){return data.filter(function(d){return d.ciudad===c&&d.medio==='Facebook';}).reduce(function(s,d){return s+d.presupuesto;},0);});
+  var goD=cas.map(function(c){return data.filter(function(d){return d.ciudad===c&&d.medio==='Google';}).reduce(function(s,d){return s+d.presupuesto;},0);});
+  var tkD=cas.map(function(c){return data.filter(function(d){return d.ciudad===c&&d.medio==='Tiktok';}).reduce(function(s,d){return s+d.presupuesto;},0);});
+  if(CH.bars)CH.bars.destroy();
+  CH.bars=new Chart(document.getElementById('cBars'),{type:'bar',
+    data:{labels:cas.map(function(c){return c.length>12?c.slice(0,12)+'…':c;}),datasets:[{label:'Facebook',data:fbD,backgroundColor:BLUE,borderRadius:3},{label:'Google',data:goD,backgroundColor:MID,borderRadius:3},{label:'TikTok',data:tkD,backgroundColor:LIGHT,borderRadius:3}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(v){return v.dataset.label+': '+fmtM(v.raw);}}}},scales:{x:{stacked:true,ticks:{font:{size:9},maxRotation:40,autoSkip:false}},y:{stacked:true,ticks:{callback:function(v){return fmtM(v);},font:{size:10}}}}}});
+  var rows=data.sort(function(a,b){return b.presupuesto-a.presupuesto;}).map(function(d){return '<tr><td><strong>'+d.ciudad+'</strong></td><td><span style="display:inline-flex;align-items:center;gap:5px"><span style="width:8px;height:8px;border-radius:2px;background:'+(d.medio==='Facebook'?BLUE:d.medio==='Google'?MID:LIGHT)+';flex-shrink:0"></span>'+d.medio+'</span></td><td>'+fmtM(d.presupuesto)+'</td><td>$'+fmt(d.presupuesto)+'</td></tr>';}).join('');
+  document.getElementById('tblMedios').innerHTML='<thead><tr><th>Ciudad</th><th>Medio</th><th>Presupuesto</th><th>Valor COP</th></tr></thead><tbody>'+rows+'</tbody>';
+}
+
+// ===== MESES =====
+function renderMeses(){
+  if(!Object.keys(mesData).length)return;
+  var fc=document.getElementById('fCiudadMes').value,fm=document.getElementById('fMedioMes').value;
+  var ML=['Mar 2026','Abr 2026','May 2026','Jun 2026'];
+  var MS=fm==='todos'?['Facebook','Google','Tiktok']:[fm];
+  var COL={'Facebook':BLUE,'Google':MID,'Tiktok':LIGHT};
+  var CS=fc==='todas'?Object.keys(mesData):[fc];
+  var ds=[];
+  MS.forEach(function(m){var v=[0,0,0,0];CS.forEach(function(c){var cd=mesData[c];if(cd&&cd[m])cd[m].forEach(function(x,i){v[i]+=x;});});if(v.some(function(x){return x>0;}))ds.push({label:m,data:v,backgroundColor:COL[m],borderRadius:4});});
+  if(CH.meses)CH.meses.destroy();
+  CH.meses=new Chart(document.getElementById('cMeses'),{type:'bar',data:{labels:ML,datasets:ds},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:'top',labels:{boxWidth:12,font:{size:12}}},tooltip:{callbacks:{label:function(v){return v.dataset.label+': '+fmtM(v.raw);}}}},scales:{x:{stacked:true},y:{stacked:true,ticks:{callback:function(v){return fmtM(v);}}}}}});
+  var rows='';
+  CS.forEach(function(ciudad){
+    var c=mesData[ciudad];if(!c)return;
+    var ma=MS.filter(function(m){return c[m]&&c[m].some(function(v){return v>0;});});if(!ma.length)return;
+    ma.forEach(function(m,i){
+      var v=c[m]||[0,0,0,0];var tot=v.reduce(function(s,x){return s+x;},0);
+      var cc=i===0?'<td rowspan="'+ma.length+'" style="font-weight:700;vertical-align:middle;border-right:2px solid '+MID+'">'+ciudad+'</td>':'';
+      rows+='<tr>'+cc+'<td><span style="display:inline-flex;align-items:center;gap:5px"><span style="width:8px;height:8px;border-radius:2px;background:'+COL[m]+';flex-shrink:0"></span>'+m+'</span></td>';
+      v.forEach(function(x){rows+='<td>'+(x>0?fmtM(x):'—')+'</td>';});
+      rows+='<td style="font-weight:600;background:#EEF3FF">'+fmtM(tot)+'</td></tr>';
+    });
+    var t=c.total||[0,0,0,0];
+    rows+='<tr class="tr-total"><td></td><td style="font-weight:700">Total '+ciudad+'</td>';
+    t.forEach(function(x){rows+='<td>'+fmtM(x)+'</td>';});rows+='<td>'+fmtM(c.gran_total||0)+'</td></tr>';
+  });
+  if(CS.length>1){
+    var tt=[0,0,0,0];var gt=0;
+    CS.forEach(function(c){var cd=mesData[c];if(cd&&cd.total){cd.total.forEach(function(x,i){tt[i]+=x;});gt+=cd.gran_total||0;}});
+    rows+='<tr class="tr-grand"><td colspan="2">TOTAL GENERAL</td>';tt.forEach(function(x){rows+='<td>'+fmtM(x)+'</td>';});rows+='<td>'+fmtM(gt)+'</td></tr>';
+  }
+  document.getElementById('tblMeses').innerHTML='<thead><tr><th>Ciudad</th><th>Canal</th><th>Mar 2026</th><th>Abr 2026</th><th>May 2026</th><th>Jun 2026</th><th>Suma total</th></tr></thead><tbody>'+rows+'</tbody>';
+}
+
+// ===== FACULTADES =====
+function renderFacultades(){
+  if(!facultadesData.length)return;
+  if(CH.fac)CH.fac.destroy();
+  CH.fac=new Chart(document.getElementById('cFac'),{type:'bar',indexAxis:'y',
+    data:{labels:facultadesData.map(function(f){return f.facultad.length>28?f.facultad.slice(0,28)+'…':f.facultad;}),datasets:[{label:'Presupuesto',data:facultadesData.map(function(f){return f.presupuesto;}),backgroundColor:facultadesData.map(function(_,i){return i===0?BLUE:i<3?MID:LIGHT;}),borderRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(v){return fmtM(v.raw);}}}},scales:{x:{ticks:{callback:function(v){return fmtM(v);},font:{size:10}}},y:{ticks:{font:{size:11}}}}}});
+  var rows=facultadesData.map(function(f){return '<tr><td><strong>'+f.facultad+'</strong></td><td>'+fmtM(f.presupuesto)+'</td><td>'+fmt(f.leads)+'</td><td>'+f.matriculas.toFixed(1)+'</td><td>'+f.meta+'</td><td>'+pbar(f.pct_cum)+'</td></tr>';}).join('');
+  document.getElementById('tblFac').innerHTML='<thead><tr><th>Facultad</th><th>Presupuesto</th><th>Leads</th><th>Matrículas</th><th>Meta</th><th>% Cumplimiento</th></tr></thead><tbody>'+rows+'</tbody>';
+}
+
+// ===== SEDES =====
+function renderSedes(){
+  if(!sedesData.length)return;
+  var top10=sedesData.slice(0,10);
+  if(CH.sedes)CH.sedes.destroy();
+  CH.sedes=new Chart(document.getElementById('cSedes'),{type:'bar',indexAxis:'y',
+    data:{labels:top10.map(function(s){return s.sede.length>28?s.sede.slice(0,28)+'…':s.sede;}),datasets:[{label:'Presupuesto',data:top10.map(function(s){return s.presupuesto;}),backgroundColor:LIGHT,borderColor:BLUE,borderWidth:1.5,borderRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(v){return fmtM(v.raw);}}}},scales:{x:{ticks:{callback:function(v){return fmtM(v);},font:{size:10}}},y:{ticks:{font:{size:11}}}}}});
+  var rows=sedesData.map(function(s){return '<tr><td><strong>'+s.sede+'</strong></td><td>'+fmtM(s.presupuesto)+'</td><td>'+fmt(s.leads)+'</td><td>'+s.matriculas.toFixed(1)+'</td><td>'+s.meta+'</td><td>'+pbar(s.pct_cum)+'</td></tr>';}).join('');
+  document.getElementById('tblSedes').innerHTML='<thead><tr><th>Sede</th><th>Presupuesto</th><th>Leads</th><th>Matrículas</th><th>Meta</th><th>% Cumplimiento</th></tr></thead><tbody>'+rows+'</tbody>';
+}
+
+// ===== PROGRAMAS =====
+function renderProgramas(){
+  if(!programasData.length)return;
+  var ff=document.getElementById('fFac').value,fm=document.getElementById('fMet').value,fc=document.getElementById('fCiudadP').value;
+  var data=programasData;
+  if(ff!=='todas')data=data.filter(function(p){return p.facultad===ff;});
+  if(fm!=='todas')data=data.filter(function(p){return p.metodologia===fm;});
+  if(fc!=='todas')data=data.filter(function(p){return p.ciudad===fc;});
+  data=data.sort(function(a,b){return b.presupuesto-a.presupuesto;});
+  document.getElementById('progCnt').textContent='— '+data.length+' programas';
+  var rows=data.map(function(p){return '<tr><td><strong>'+p.programa+'</strong></td><td>'+p.facultad+'</td><td>'+p.ciudad+'</td><td><span class="badge warn" style="font-size:10px;padding:2px 7px">'+p.metodologia+'</span></td><td>'+fmtM(p.presupuesto)+'</td><td>'+fmt(p.leads)+'</td><td>$'+fmt(p.cpl)+'</td><td>'+p.matriculas.toFixed(1)+'</td><td>'+p.meta+'</td><td>'+pbar(p.pct_cum)+'</td></tr>';}).join('');
+  document.getElementById('tblProg').innerHTML='<thead><tr><th>Programa</th><th>Facultad</th><th>Ciudad</th><th>Metodología</th><th>Presupuesto</th><th>Leads</th><th>CPL</th><th>Matríc.</th><th>Meta</th><th>% Cumplimiento</th></tr></thead><tbody>'+rows+'</tbody>';
+}
+
+loadAll();
+</script>
+</body>
+</html>
