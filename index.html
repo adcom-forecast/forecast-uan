@@ -234,11 +234,26 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
     <div id="panel-ciudades" class="panel">
       <div id="sp-ciudades" class="spin-wrap"><div class="spinner"></div><p>Cargando...</p></div>
       <div id="ct-ciudades" style="display:none">
-        <div class="filters"><div class="filter-chip"><label>Ordenar por:</label>
-          <select onchange="renderCiudades(this.value)">
-            <option value="presupuesto">Presupuesto</option><option value="leads">Leads</option>
-            <option value="matriculas">Matrículas</option><option value="cpl">CPL</option><option value="pct_cum">% Participación</option>
-          </select></div></div>
+        <div class="filters">
+          <div class="filter-chip"><label>Ordenar por:</label>
+            <select onchange="renderCiudades(this.value)">
+              <option value="presupuesto">Presupuesto</option><option value="leads">Leads</option>
+              <option value="matriculas">Matrículas</option><option value="cpl">CPL</option><option value="pct_cum">% Participación</option>
+            </select>
+          </div>
+          <div class="filter-chip"><label>Nivel:</label>
+            <select id="fNivelCiudad" onchange="renderCiudades()">
+              <option value="todos">Todos</option>
+              <option value="Pregrado">Pregrado</option>
+              <option value="Posgrado">Posgrado</option>
+            </select>
+          </div>
+          <div class="filter-chip"><label>Ciudad:</label>
+            <select id="fCiudadCiudad" onchange="renderCiudades()">
+              <option value="todas">Todas</option>
+            </select>
+          </div>
+        </div>
         <div class="g2">
           <div class="chart-box"><div class="chart-title">Presupuesto Top 10</div><div style="position:relative;height:280px"><canvas id="cPres"></canvas></div></div>
           <div class="chart-box"><div class="chart-title">Matrículas vs Meta</div><div style="position:relative;height:280px"><canvas id="cMat"></canvas></div></div>
@@ -307,6 +322,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
       <div id="sp-programas" class="spin-wrap"><div class="spinner"></div><p>Cargando...</p></div>
       <div id="ct-programas" style="display:none">
         <div class="filters">
+          <div class="filter-chip"><label>Nivel:</label>
+            <select id="fNivelProg" onchange="renderProgramas()">
+              <option value="todos">Todos</option>
+              <option value="Pregrado">Pregrado</option>
+              <option value="Posgrado">Posgrado</option>
+            </select>
+          </div>
           <div class="filter-chip"><label>Facultad:</label><select id="fFac" onchange="renderProgramas()"><option value="todas">Todas</option></select></div>
           <div class="filter-chip"><label>Metodología:</label><select id="fMet" onchange="renderProgramas()"><option value="todas">Todas</option><option value="Presencial">Presencial</option><option value="Virtual">Virtual</option><option value="Distancia">Distancia</option><option value="Hibrido">Híbrido</option></select></div>
           <div class="filter-chip"><label>Ciudad:</label><select id="fCiudadP" onchange="renderProgramas()"><option value="todas">Todas</option></select></div>
@@ -398,7 +420,8 @@ function processData(medio,mes,programa){
     var mat=parseNum(r['Matriculas']),meta=parseNum(r['Meta Matriculas']),pct=parseNum(r['% Cum']);
     if(pct>0&&pct<=1)pct*=100;
     if(!ciudad||!prog)return;
-    programasData.push({ciudad:ciudad,sede:sede,facultad:fac,metodologia:met,programa:prog,presupuesto:pres,cpl:cpl,leads:leads,matriculas:mat,meta:meta,pct_cum:pct});
+    var nivel=r['Nivel']||r['nivel']||'';
+    programasData.push({ciudad:ciudad,sede:sede,facultad:fac,metodologia:met,nivel:nivel,programa:prog,presupuesto:pres,cpl:cpl,leads:leads,matriculas:mat,meta:meta,pct_cum:pct});
     if(!cMapP[ciudad])cMapP[ciudad]={presupuesto:0,leads:0,matriculas:0,meta:0};
     cMapP[ciudad].presupuesto+=pres;cMapP[ciudad].leads+=leads;cMapP[ciudad].matriculas+=mat;cMapP[ciudad].meta+=meta;
     if(!facMap[fac])facMap[fac]={facultad:fac,presupuesto:0,leads:0,matriculas:0,meta:0};
@@ -449,7 +472,7 @@ function processData(medio,mes,programa){
 
   // Populate filters
   var ciudades=ciudadesData.map(function(c){return c.ciudad;}).sort();
-  ['fCiudadM','fCiudadMes','fCiudadP'].forEach(function(id){
+  ['fCiudadM','fCiudadMes','fCiudadP','fCiudadCiudad'].forEach(function(id){
     var sel=document.getElementById(id);while(sel.options.length>1)sel.remove(1);
     ciudades.forEach(function(c){var o=document.createElement('option');o.value=c;o.textContent=c;sel.appendChild(o);});
   });
@@ -570,8 +593,32 @@ function renderResumen(){
 
 // ===== CIUDADES =====
 function renderCiudades(s){
-  if(!ciudadesData.length)return;s=s||'presupuesto';
-  var top10=[...ciudadesData].sort(function(a,b){return b[s]-a[s];}).slice(0,10);
+  if(!ciudadesData.length)return;
+  // Get sort from select if called from select change
+  if(typeof s === 'object' || !s) s='presupuesto';
+  var fNivel=document.getElementById('fNivelCiudad')?document.getElementById('fNivelCiudad').value:'todos';
+  var fCiudad=document.getElementById('fCiudadCiudad')?document.getElementById('fCiudadCiudad').value:'todas';
+  // Filter programasData by nivel, then aggregate by ciudad
+  var progFilt=programasData;
+  if(fNivel!=='todos')progFilt=progFilt.filter(function(p){return p.nivel===fNivel;});
+  if(fCiudad!=='todas')progFilt=progFilt.filter(function(p){return p.ciudad===fCiudad;});
+  // Build ciudad aggregation from filtered progs
+  var cMap2={};
+  progFilt.forEach(function(p){
+    if(!cMap2[p.ciudad])cMap2[p.ciudad]={ciudad:p.ciudad,presupuesto:0,leads:0,cpl:0,matriculas:0,meta_mat:0};
+    cMap2[p.ciudad].presupuesto+=p.presupuesto;
+    cMap2[p.ciudad].leads+=p.leads;
+    cMap2[p.ciudad].matriculas+=p.matriculas;
+    cMap2[p.ciudad].meta_mat+=p.meta;
+  });
+  var sorted=Object.values(cMap2).map(function(c){
+    c.cpl=c.leads>0?Math.round(c.presupuesto/c.leads):0;
+    c.pct_cum=c.meta_mat>0?c.matriculas/c.meta_mat*100:0;
+    return c;
+  }).sort(function(a,b){return b[s]-a[s];});
+  // Use full ciudadesData if no prog filter applied
+  if(fNivel==='todos'&&fCiudad==='todas')sorted=[...ciudadesData].sort(function(a,b){return b[s]-a[s];});
+  var top10=sorted.slice(0,10);
   if(CH.pres)CH.pres.destroy();if(CH.mat)CH.mat.destroy();
   CH.pres=new Chart(document.getElementById('cPres'),{type:'bar',
     data:{labels:top10.map(function(c){return c.ciudad.length>12?c.ciudad.slice(0,12)+'…':c.ciudad;}),datasets:[{label:'Presupuesto',data:top10.map(function(c){return c.presupuesto;}),backgroundColor:LIGHT,borderColor:BLUE,borderWidth:2,borderRadius:4}]},
@@ -698,7 +745,9 @@ function renderSedes(){
 function renderProgramas(){
   if(!programasData.length)return;
   var ff=document.getElementById('fFac').value,fm=document.getElementById('fMet').value,fc=document.getElementById('fCiudadP').value;
+  var fn=document.getElementById('fNivelProg')?document.getElementById('fNivelProg').value:'todos';
   var data=programasData;
+  if(fn!=='todos')data=data.filter(function(p){return p.nivel===fn;});
   if(ff!=='todas')data=data.filter(function(p){return p.facultad===ff;});
   if(fm!=='todas')data=data.filter(function(p){return p.metodologia===fm;});
   if(fc!=='todas')data=data.filter(function(p){return p.ciudad===fc;});
@@ -710,9 +759,10 @@ function renderProgramas(){
   var totPRMeta=data.reduce(function(a,p){return a+p.meta;},0);
   var totPRPct=totPRMeta>0?totPRM/totPRMeta*100:0;
   var totPRCPL=totPRL>0?totPRP/totPRL:0;
-  var rows=data.map(function(p){return '<tr><td><strong>'+p.programa+'</strong></td><td>'+p.facultad+'</td><td>'+p.ciudad+'</td><td><span class="badge warn" style="font-size:10px;padding:2px 7px">'+p.metodologia+'</span></td><td>'+fmtM(p.presupuesto)+'</td><td>'+fmt(p.leads)+'</td><td>$'+fmt(p.cpl)+'</td><td>'+p.matriculas.toFixed(1)+'</td><td>'+p.meta+'</td><td>'+pbar(p.pct_cum)+'</td></tr>';}).join('');
-  rows+='<tr class="tr-grand"><td colspan="4"><strong>TOTAL ('+data.length+' programas)</strong></td><td>'+fmtM(totPRP)+'</td><td>'+fmt(totPRL)+'</td><td>$'+fmt(totPRCPL)+'</td><td>'+totPRM.toFixed(1)+'</td><td>'+totPRMeta+'</td><td>'+pbar(totPRPct)+'</td></tr>';
-  document.getElementById('tblProg').innerHTML='<thead><tr><th>Programa</th><th>Facultad</th><th>Ciudad</th><th>Metodología</th><th>Presupuesto</th><th>Leads</th><th>CPL</th><th>Matríc.</th><th>Meta</th><th>% Participación</th></tr></thead><tbody>'+rows+'</tbody>';
+  function nivelBadgeUAN(n){if(!n)return '—';var s=n==='Pregrado'?'background:#FDE8DF;color:#C23D08':'background:#E8F0FF;color:#1A3B8C';return '<span style="display:inline-block;font-size:10px;font-weight:600;padding:2px 7px;border-radius:4px;'+s+'">'+n+'</span>';}
+  var rows=data.map(function(p){return '<tr><td><strong>'+p.programa+'</strong></td><td>'+p.facultad+'</td><td>'+p.ciudad+'</td><td>'+nivelBadgeUAN(p.nivel)+'</td><td><span class="badge warn" style="font-size:10px;padding:2px 7px">'+p.metodologia+'</span></td><td>'+fmtM(p.presupuesto)+'</td><td>'+fmt(p.leads)+'</td><td>$'+fmt(p.cpl)+'</td><td>'+p.matriculas.toFixed(1)+'</td><td>'+p.meta+'</td><td>'+pbar(p.pct_cum)+'</td></tr>';}).join('');
+  rows+='<tr class="tr-grand"><td colspan="5"><strong>TOTAL ('+data.length+' programas)</strong></td><td>'+fmtM(totPRP)+'</td><td>'+fmt(totPRL)+'</td><td>$'+fmt(totPRCPL)+'</td><td>'+totPRM.toFixed(1)+'</td><td>'+totPRMeta+'</td><td>'+pbar(totPRPct)+'</td></tr>';
+  document.getElementById('tblProg').innerHTML='<thead><tr><th>Programa</th><th>Facultad</th><th>Ciudad</th><th>Nivel</th><th>Metodología</th><th>Presupuesto</th><th>Leads</th><th>CPL</th><th>Matríc.</th><th>Meta</th><th>% Participación</th></tr></thead><tbody>'+rows+'</tbody>';
 }
 
 loadAll();
